@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import ReactMarkdown from 'react-markdown';
 import { EventItem, Opportunity, ScamWarning } from '@/lib/types';
 
 type ChatMsg = { role: 'user' | 'agent'; text: string };
@@ -406,7 +407,21 @@ export default function EventDetailClient({ event }: { event: EventItem }) {
                         : 'border border-line bg-[#11192A] text-muted'
                     }`}
                   >
-                    {m.text}
+                    {m.role === 'agent' ? (
+                      <div className="prose prose-invert max-w-none text-[13.5px] leading-7 text-muted [&_p]:my-2 [&_p]:leading-7 [&_p]:text-muted [&_h2]:mt-4 [&_h2]:mb-2 [&_h2]:font-display [&_h2]:text-[14px] [&_h2]:font-semibold [&_h2]:text-sweep [&_h3]:mt-3 [&_h3]:mb-1.5 [&_h3]:font-display [&_h3]:text-[13px] [&_h3]:font-semibold [&_h3]:text-sweep [&_a]:text-sweep [&_a]:underline [&_a:hover]:text-sweep/80 [&_a]:transition">
+                        <ReactMarkdown
+                          components={{
+                            a: ({ node, ...props }) => (
+                              <a {...props} target="_blank" rel="noopener noreferrer" />
+                            ),
+                          }}
+                        >
+                          {m.text}
+                        </ReactMarkdown>
+                      </div>
+                    ) : (
+                      m.text
+                    )}
                   </div>
                 ))}
                 {asking && <div className="font-mono text-[12px] text-muted">Thinking…</div>}
