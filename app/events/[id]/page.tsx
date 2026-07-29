@@ -7,5 +7,9 @@ export default async function EventPage({ params }: { params: { id: string } }) 
   const event = events.find((e) => e.id === params.id);
   if (!event) return notFound();
 
-  return <EventDetailClient event={event} />;
+  return (
+    <main className="min-h-screen bg-bg">
+      <EventDetailClient event={event} />
+    </main>
+  );
 }
