@@ -74,6 +74,7 @@ Respond with ONLY a JSON array, no markdown, no preamble, in this exact shape:
 
   try {
     const text = await callOpenAI(prompt);
+    console.log('scoreEvents raw OpenAI response:', text);
     const scores: { id: string; score: number; reason: string }[] = extractJsonArray(text);
     const byId = new Map(scores.map((s) => [String(s.id), s]));
     return events.map((e) => {
