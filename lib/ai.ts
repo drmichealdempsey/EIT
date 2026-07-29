@@ -123,6 +123,31 @@ Respond with ONLY a JSON array (can be empty), no markdown, no preamble, in this
   return extractJsonArray(text) as ScamWarning[];
 }
 
+export async function generateBuildPrompt(event: EventItem, opportunity: Opportunity): Promise<string> {
+  const prompt = `You are helping a solo freelance developer turn a specific event opportunity into a concrete build plan for Claude Code.
+
+Event context:
+- Name: ${event.name}
+- City: ${event.city}
+- Date: ${event.date}
+- Category: ${event.tag}
+- Summary: ${event.blurb}
+
+Opportunity:
+- Title: ${opportunity.title}
+- Description: ${opportunity.desc}
+
+Write a detailed, ready-to-use prompt that can be pasted directly into Claude Code. The prompt should describe exactly what to build for this specific opportunity. Include:
+1. What the tool/page/app should do.
+2. Key features and user flow.
+3. A simple, realistic technical approach that could be built in a day or two.
+4. What "done" looks like.
+
+Make it practical, specific to this event, and focused on shipping something useful quickly. Return only the prompt text, no markdown fencing, no extra commentary.`;
+
+  return callOpenAI(prompt, false, 2000);
+}
+
 export async function askAboutEvent(event: EventItem, question: string): Promise<string> {
   const prompt = `You are an event-intelligence agent inside a personal opportunity-tracking tool. The user clicked into this event:
 

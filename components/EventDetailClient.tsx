@@ -6,6 +6,12 @@ import { EventItem, Opportunity, ScamWarning } from '@/lib/types';
 
 type ChatMsg = { role: 'user' | 'agent'; text: string };
 type SectionKey = 'summary' | 'opportunities' | 'scams';
+type BuildPromptState = {
+  loading: boolean;
+  prompt: string | null;
+  expanded: boolean;
+  copied: boolean;
+};
 
 function getScoreTone(score?: number) {
   if (typeof score !== 'number') {
@@ -30,6 +36,7 @@ export default function EventDetailClient({ event }: { event: EventItem }) {
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [question, setQuestion] = useState('');
   const [asking, setAsking] = useState(false);
+  const [buildPromptState, setBuildPromptState] = useState<Record<string, BuildPromptState>>({});
   const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>({
     summary: true,
     opportunities: true,
@@ -107,6 +114,62 @@ export default function EventDetailClient({ event }: { event: EventItem }) {
       setMessages((m) => [...m, { role: 'agent', text: 'Something went wrong reaching the agent.' }]);
     } finally {
       setAsking(false);
+    }
+  }
+
+  async function generatePromptForOpportunity(opportunity: Opportunity, index: number) {
+    const key = `${index}-${opportunity.title}`;
+    setBuildPromptState((prev) => ({
+      ...prev,
+      [key]: { loading: true, prompt: prev[key]?.prompt ?? null, expanded: prev[key]?.expanded ?? false, copied: false },
+    }));
+
+    try {
+      const res = await fetch(`/api/events/${event.id}/build-prompt`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event, opportunity }),
+      });
+      const data = await res.json();
+      setBuildPromptState((prev) => ({
+        ...prev,
+        [key]: {
+          loading: false,
+          prompt: data.prompt || 'Unable to generate a build prompt right now.',
+          expanded: true,
+          copied: false,
+        },
+      }));
+    } catch {
+      setBuildPromptState((prev) => ({
+        ...prev,
+        [key]: {
+          loading: false,
+          prompt: 'Unable to generate a build prompt right now.',
+          expanded: true,
+          copied: false,
+        },
+      }));
+    }
+  }
+
+  function togglePrompt(key: string) {
+    setBuildPromptState((prev) => ({
+      ...prev,
+      [key]: { ...prev[key], expanded: !prev[key]?.expanded },
+    }));
+  }
+
+  async function copyPrompt(key: string, prompt: string | null) {
+    if (!prompt) return;
+    try {
+      await navigator.clipboard.writeText(prompt);
+      setBuildPromptState((prev) => ({ ...prev, [key]: { ...prev[key], copied: true } }));
+      window.setTimeout(() => {
+        setBuildPromptState((prev) => ({ ...prev, [key]: { ...prev[key], copied: false } }));
+      }, 1500);
+    } catch {
+      // no-op
     }
   }
 
@@ -206,17 +269,65 @@ export default function EventDetailClient({ event }: { event: EventItem }) {
                   )}
                   {opportunities && (
                     <ol className={`space-y-3 transition-all duration-500 ${oppVisible ? 'opacity-100' : 'opacity-0'}`}>
-                      {opportunities.map((o, i) => (
-                        <li key={`${o.title}-${i}`} className="flex gap-3 rounded-2xl border border-line bg-[#11192A] px-3 py-3">
-                          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-hot/30 bg-hot/10 font-mono text-[10.5px] text-hot">
-                            {i + 1}
-                          </div>
-                          <div>
-                            <div className="font-display text-[14px] font-semibold text-white">{o.title}</div>
-                            <div className="mt-1 text-sm leading-6 text-muted">{o.desc}</div>
-                          </div>
-                        </li>
-                      ))}
+                      {opportunities.map((o, i) => {
+                        const key = `${i}-${o.title}`;
+                        const promptState = buildPromptState[key];
+                        return (
+                          <li key={key} className="rounded-2xl border border-line bg-[#11192A] px-3 py-3">
+                            <div className="flex gap-3">
+                              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-hot/30 bg-hot/10 font-mono text-[10.5px] text-hot">
+                                {i + 1}
+                              </div>
+                              <div className="flex-1">
+                                <div className="font-display text-[14px] font-semibold text-white">{o.title}</div>
+                                <div className="mt-1 text-sm leading-6 text-muted">{o.desc}</div>
+                              </div>
+                            </div>
+                            <div className="mt-3 flex flex-wrap items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => generatePromptForOpportunity(o, i)}
+                                disabled={Boolean(promptState?.loading)}
+                                className="rounded-full border border-sweep/40 bg-sweep/10 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.3em] text-sweep transition hover:bg-sweep/20 disabled:opacity-50"
+                              >
+                                {promptState?.loading ? 'Generating…' : 'Generate build prompt'}
+                              </button>
+                              {promptState?.prompt && (
+                                <button
+                                  type="button"
+                                  onClick={() => togglePrompt(key)}
+                                  className="rounded-full border border-line bg-[#0A0F1C] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.3em] text-muted transition hover:text-sweep"
+                                >
+                                  {promptState.expanded ? 'Hide prompt' : 'Show prompt'}
+                                </button>
+                              )}
+                            </div>
+                            {promptState?.prompt && (
+                              <div className={`grid transition-all duration-300 ${promptState.expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                                <div className="overflow-hidden pt-3">
+                                  <div className="rounded-2xl border border-line bg-[#0A0F1C] p-3">
+                                    <div className="flex items-center justify-between gap-3">
+                                      <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-sweep">
+                                        Claude Code prompt
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() => copyPrompt(key, promptState.prompt)}
+                                        className="rounded-full border border-line bg-[#11192A] px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.3em] text-muted transition hover:text-sweep"
+                                      >
+                                        {promptState.copied ? 'Copied' : 'Copy'}
+                                      </button>
+                                    </div>
+                                    <pre className="mt-3 whitespace-pre-wrap font-mono text-[12px] leading-6 text-muted">
+                                      {promptState.prompt}
+                                    </pre>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
                     </ol>
                   )}
                 </div>

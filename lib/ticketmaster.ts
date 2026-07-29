@@ -12,7 +12,9 @@ export async function fetchTicketmasterEvents(): Promise<EventItem[]> {
   }
 
   const results: EventItem[] = [];
-  const startDateTime = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+  const startDateTime = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .replace(/\.\d{3}Z$/, 'Z');
 
   for (const city of CITIES) {
     const url = `https://app.ticketmaster.com/discovery/v2/events.json?apikey=${apiKey}&city=${encodeURIComponent(
