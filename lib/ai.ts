@@ -5,14 +5,14 @@ const MODEL = 'gpt-4o';
 
 // IMPORTANT: this file only ever runs on the server (API routes / server components).
 // process.env.OPENAI_API_KEY must never be read from a 'use client' file.
-async function callOpenAI(prompt: string, useWebSearch = false): Promise<string> {
+async function callOpenAI(prompt: string, useWebSearch = false, maxTokens = 1000): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('OPENAI_API_KEY is not set');
 
   const body: Record<string, unknown> = {
     model: MODEL,
     input: [{ role: 'user', content: [{ type: 'input_text', text: prompt }] }],
-    max_output_tokens: 1000,
+    max_output_tokens: maxTokens,
   };
 
   if (useWebSearch) {
@@ -73,7 +73,7 @@ Respond with ONLY a JSON array, no markdown, no preamble, in this exact shape:
 [{"id": "the id given above", "score": 7, "reason": "short reason here"}, ...]`;
 
   try {
-    const text = await callOpenAI(prompt);
+    const text = await callOpenAI(prompt, false, 4000);
     console.log('scoreEvents raw OpenAI response:', text);
     const scores: { id: string; score: number; reason: string }[] = extractJsonArray(text);
     const byId = new Map(scores.map((s) => [String(s.id), s]));
