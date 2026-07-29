@@ -197,6 +197,11 @@ export default function EventDetailClient({ event }: { event: EventItem }) {
               <div className="mt-4 flex flex-wrap gap-2 text-[12px] text-muted">
                 <span className="rounded-full border border-line bg-[#11192A] px-3 py-1.5">{event.city}</span>
                 <span className="rounded-full border border-line bg-[#11192A] px-3 py-1.5">{event.date}</span>
+                {event.maxPrice != null && (
+                  <span className="rounded-full border border-line bg-[#11192A] px-3 py-1.5">
+                    {event.minPrice != null ? `$${Math.round(event.minPrice)}–$${Math.round(event.maxPrice)}` : `$${Math.round(event.maxPrice)}+`}
+                  </span>
+                )}
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-3">

@@ -32,6 +32,9 @@ export async function fetchTicketmasterEvents(): Promise<EventItem[]> {
       const events = data._embedded?.events ?? [];
 
       for (const e of events) {
+        const minPrice = e.priceRanges?.[0]?.min;
+        const maxPrice = e.priceRanges?.[0]?.max;
+
         results.push({
           id: e.id,
           name: e.name,
@@ -44,6 +47,8 @@ export async function fetchTicketmasterEvents(): Promise<EventItem[]> {
             e.pleaseNote ||
             `${e.name} at ${e._embedded?.venues?.[0]?.name ?? city}, ${e.dates?.start?.localDate ?? ''}`,
           url: e.url,
+          minPrice: typeof minPrice === 'number' ? minPrice : undefined,
+          maxPrice: typeof maxPrice === 'number' ? maxPrice : undefined,
         });
       }
     } catch (err) {
@@ -51,7 +56,35 @@ export async function fetchTicketmasterEvents(): Promise<EventItem[]> {
     }
   }
 
-  return results;
+  const byCompositeKey = new Map<string, EventItem>();
+  for (const event of results) {
+    const key = `${event.name.trim().toLowerCase()}::${event.city.trim().toLowerCase()}`;
+    const existing = byCompositeKey.get(key);
+    if (!existing) {
+      byCompositeKey.set(key, event);
+      continue;
+    }
+
+    const existingDate = new Date(existing.date);
+    const currentDate = new Date(event.date);
+    const shouldReplace =
+      Number.isNaN(currentDate.getTime())
+        ? false
+        : Number.isNaN(existingDate.getTime()) || currentDate < existingDate;
+
+    if (shouldReplace) {
+      byCompositeKey.set(key, event);
+    }
+  }
+
+  const filtered = Array.from(byCompositeKey.values()).filter((event) => {
+    if (typeof event.maxPrice === 'number') {
+      return event.maxPrice >= 200;
+    }
+    return true;
+  });
+
+  return filtered;
 }
 
 export async function getEventById(id: string): Promise<EventItem | null> {
@@ -79,6 +112,9 @@ export async function getEventById(id: string): Promise<EventItem | null> {
     const date = e.dates?.start?.localDate ?? 'TBA';
     const tag = (e.classifications?.[0]?.segment?.name ?? 'ENTERTAINMENT').toUpperCase();
 
+    const minPrice = e.priceRanges?.[0]?.min;
+    const maxPrice = e.priceRanges?.[0]?.max;
+
     return {
       id: e.id,
       name: e.name,
@@ -88,6 +124,8 @@ export async function getEventById(id: string): Promise<EventItem | null> {
       tag,
       blurb: e.info || e.pleaseNote || `${e.name} at ${venue?.name ?? city}, ${date}`,
       url: e.url,
+      minPrice: typeof minPrice === 'number' ? minPrice : undefined,
+      maxPrice: typeof maxPrice === 'number' ? maxPrice : undefined,
     };
   } catch (err) {
     console.error(`Ticketmaster single-event fetch threw for ${id}:`, err);

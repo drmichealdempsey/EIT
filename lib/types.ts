@@ -9,6 +9,8 @@ export type EventItem = {
   tag: string;
   blurb: string;
   url?: string;
+  minPrice?: number;
+  maxPrice?: number;
   score?: number;
   reason?: string;
 };

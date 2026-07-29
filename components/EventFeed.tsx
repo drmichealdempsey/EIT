@@ -87,6 +87,11 @@ export default function EventFeed({ events }: { events: EventItem[] }) {
               <div className="font-mono text-[11.5px] text-muted flex gap-3 flex-wrap mb-2.5">
                 <span>{ev.city}</span>
                 <span>{ev.date}</span>
+                {ev.maxPrice != null && (
+                  <span>
+                    {ev.minPrice != null ? `$${Math.round(ev.minPrice)}–$${Math.round(ev.maxPrice)}` : `$${Math.round(ev.maxPrice)}+`}
+                  </span>
+                )}
               </div>
               {ev.reason && (
                 <div className="text-[12.5px] text-muted border-t border-line pt-2.5 mt-1 leading-snug">
