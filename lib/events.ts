@@ -1,5 +1,6 @@
 import { unstable_cache } from 'next/cache';
 import { fetchTicketmasterEvents } from './ticketmaster';
+import { fetchTrendEvents } from './trend-events';
 import { scoreEvents } from './ai';
 
 // This is the cost-control layer: the expensive part (Ticketmaster fetch + one
@@ -7,7 +8,11 @@ import { scoreEvents } from './ai';
 // many people/pages hit the site in between. Every page load just reads this cache.
 export const getScoredEvents = unstable_cache(
   async () => {
-    const raw = await fetchTicketmasterEvents();
+    const [ticketmasterEvents, trendEvents] = await Promise.all([
+      fetchTicketmasterEvents(),
+      fetchTrendEvents(),
+    ]);
+    const raw = [...ticketmasterEvents, ...trendEvents];
     const scored = await scoreEvents(raw);
     return scored.sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
   },
