@@ -43,12 +43,15 @@ async function fetchCategoryEvents(category: (typeof CATEGORY_CONFIG)[number]): 
   const today = new Date();
   const minDate = new Date(today);
   minDate.setDate(minDate.getDate() + 14);
+  const maxDate = new Date(today);
+  maxDate.setDate(maxDate.getDate() + 60);
   const minDateString = minDate.toISOString().split('T')[0];
+  const maxDateString = maxDate.toISOString().split('T')[0];
 
   const prompt = `You are a research assistant. Find REAL, currently findable upcoming ${category.promptLabel} events in the following cities: ${CITIES.join(', ')}.
 
 Requirements:
-- Only include events that are genuinely findable via web search and are at least 14 days from today (${minDateString}).
+- Only include events that are genuinely findable via web search and are between ${minDateString} and ${maxDateString}.
 - Do NOT invent or guess. If you cannot confidently verify a real event for a city, skip that city entirely.
 - Return up to 3 events total for this category across all the cities.
 - Return each event as a line in this exact format:

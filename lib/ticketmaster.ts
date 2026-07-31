@@ -15,11 +15,14 @@ export async function fetchTicketmasterEvents(): Promise<EventItem[]> {
   const startDateTime = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
     .toISOString()
     .replace(/\.\d{3}Z$/, 'Z');
+  const endDateTime = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .replace(/\.\d{3}Z$/, 'Z');
 
   for (const city of CITIES) {
     const url = `https://app.ticketmaster.com/discovery/v2/events.json?apikey=${apiKey}&city=${encodeURIComponent(
       city
-    )}&size=5&sort=date,asc&startDateTime=${encodeURIComponent(startDateTime)}`;
+    )}&size=5&sort=date,asc&startDateTime=${encodeURIComponent(startDateTime)}&endDateTime=${encodeURIComponent(endDateTime)}`;
 
     try {
       // Cache each city's fetch for 6 hours — this is the "free filter" layer, no AI cost here.

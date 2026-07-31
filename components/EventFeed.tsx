@@ -12,15 +12,30 @@ const CATS: { key: string; label: string }[] = [
   { key: 'don', label: 'Donation/Charity' },
 ];
 
+const RANGES: { key: number; label: string }[] = [
+  { key: 30, label: 'Next 30 Days' },
+  { key: 45, label: 'Next 45 Days' },
+  { key: 60, label: 'Next 60 Days' },
+];
+
 export default function EventFeed({ events }: { events: EventItem[] }) {
   const [cat, setCat] = useState('all');
   const [city, setCity] = useState('all');
+  const [range, setRange] = useState(30);
 
   const cities = useMemo(() => Array.from(new Set(events.map((e) => e.city))).sort(), [events]);
 
-  const filtered = events.filter(
-    (e) => (cat === 'all' || e.category === cat) && (city === 'all' || e.city === city)
-  );
+  const filtered = events.filter((e) => {
+    if (cat !== 'all' && e.category !== cat) return false;
+    if (city !== 'all' && e.city !== city) return false;
+
+    const eventDate = new Date(e.date);
+    if (Number.isNaN(eventDate.getTime())) return false;
+
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() + range);
+    return eventDate <= cutoff;
+  });
 
   return (
     <div>
@@ -52,6 +67,20 @@ export default function EventFeed({ events }: { events: EventItem[] }) {
             </option>
           ))}
         </select>
+        <span className="font-mono text-[10.5px] text-muted ml-3">DATE RANGE</span>
+        {RANGES.map((r) => (
+          <button
+            key={r.key}
+            onClick={() => setRange(r.key)}
+            className={`font-mono text-[11.5px] px-3 py-1.5 rounded-full border transition ${
+              range === r.key
+                ? 'bg-sweep text-bg border-sweep font-semibold'
+                : 'text-muted border-line hover:text-text hover:border-sweep'
+            }`}
+          >
+            {r.label}
+          </button>
+        ))}
       </div>
 
       <div className="px-8 py-6">
